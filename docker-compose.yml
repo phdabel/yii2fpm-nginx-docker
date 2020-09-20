@@ -1,0 +1,59 @@
+version: '3.4'
+services:
+   web:
+      image: nginx:latest
+      networks:
+         - app_net
+      restart: unless-stopped
+      ports:
+         - "8080:80"
+         - "443:443"
+      depends_on:
+         - php
+      volumes:
+         # Application
+         - ./_host-volumes/app:/opt/app:delegated
+         # Certificates and other configurations
+         - ./php/etc/nginx/conf.d/:/etc/nginx/conf.d/
+         - ./php/etc/nginx/certs/:/etc/nginx/certs/:delegated
+         # Application logs
+         - ./_host-volumes/logs/app:/var/app/logs
+         # Nginx Logs
+         - ./_host-volumes/logs/nginx:/var/logs/nginx
+   php:
+      build: 
+         dockerfile: Dockerfile-debian
+         context: 'php'
+      image: yiiframework/php:7.4-fpm
+      networks:
+         - app_net
+      restart: unless-stopped
+      links:
+         - pgsql
+      volumes:
+         - ./tests:/tests:delegated
+         # Application
+         - ./_host-volumes/app:/opt/app:delegated
+         # Composer cache
+         - ~/.composer-docker/cache:/root/.composer/cache:delegated
+   pgsql:
+      image: postgres:9.5
+      ports:
+         - "5432:5432"
+      restart: unless-stopped
+      networks:
+         - app_net
+      environment:
+         - POSTGRES_DB=yii2advanced
+         - POSTGRES_USER=yii2advanced
+         - POSTGRES_PASSWORD=secret
+   cache:
+      image: redis
+      restart: unless-stopped
+      networks:
+         - app_net
+
+networks:
+   app_net:
+      driver: bridge
+
