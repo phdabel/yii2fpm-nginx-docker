@@ -6,12 +6,25 @@ NC='\033[0m'
 
 export HOST_APP_DIR=_host-volumes/app/
 export CONTAINER_APP_DIR=/opt/app/
+export CERTS_PATH=php/etc/nginx/certs/
 
 if [ ! "$(ls -A $HOST_APP_DIR)" ]
 then
     echo -e "${RED}O diretório da aplicação está vazio.${NC}"
     cp .env-dist .env
     git clone https://github.com/yiisoft/yii2-app-advanced.git "${HOST_APP_DIR}"
+fi
+
+if [ ! "$(ls -A $CERTS_PATH)" ]
+then
+
+# generating ssl key and certificate
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+   -subj "/C=BR/ST=Rio Grande do Sul/L=Porto Alegre/O=Organization/OU=Unit/CN=localhost" \
+   -keyout "$CERTS_PATH"dev-app.key -out "$CERTS_PATH"dev-app.crt
+
+# generating DH key
+sudo openssl dhparam -out "$CERTS_PATH"dhparam.pem 2048
 fi
 
 sudo docker-compose up -d --build
